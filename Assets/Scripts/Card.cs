@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "New Card", menuName = "Card")]
+[CreateAssetMenu(fileName = "new Card", menuName = "Card")]
 public class Card : ScriptableObject
 {
     public new string name;
-    public string description;
 
     public Sprite artwork;
-    public Sprite rarity;
 
-    public int manaCost;
-    public int attack;
-    public int health;
+    public int cardID;
+    public int attackPower;
+    public int defensePower;
+    public int value;
 
-    public int cardId;
+
+    public void Print()
+    {
+    }
 }
