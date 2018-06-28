@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.Remoting.Messaging;
 using UnityEngine;
 using UnityEngine.UI;
 using Button = UnityEngine.Experimental.UIElements.Button;
@@ -13,6 +12,7 @@ public class GameManager : MonoBehaviour
     public Text EpicAmountText;
     public Text LegendaryAmountText;
 
+    public RectTransform fadePanel;
     public RectTransform boughtPanel;
     public RectTransform normalSlot;
     public RectTransform epicSlot;
@@ -56,38 +56,56 @@ public class GameManager : MonoBehaviour
 
     void Start ()
     {
+        money = PlayerPrefs.GetInt("Money");
+        normalAmount = PlayerPrefs.GetInt("Normal_Amount");
+        epicAmount = PlayerPrefs.GetInt("Epic_Amount");
+        legendaryAmount = PlayerPrefs.GetInt("Legendary_Amount");
+
         audioClip = this.GetComponent<AudioSource>();
         LoadingResources();
-        _anim = cardDisplay.GetComponentInChildren<Animator>();
+        _anim = GetComponent<Animator>();
+    }
+
+
+    public void LoadPreviousSave()
+    {
+        money = PlayerPrefs.GetInt("Money");
+        Debug.Log(PlayerPrefs.GetInt("Normal_Amount"));
+        epicAmount = PlayerPrefs.GetInt("Epic_Amount");
+        legendaryAmount = PlayerPrefs.GetInt("Legendary_Amount");
+    }
+
+    public void CreateNewSave()
+    {
+        money = 300;
+        normalAmount = 0;
+        epicAmount = 0;
+        legendaryAmount = 0;
     }
 
 
 	void Update ()
 	{
-	    moneyText.text = "" + money;
-    }
-
-
-    IEnumerator Collect()
-    {
-        yield return new WaitForSeconds(0.5f);
-        boughtPanelLibrary.Clear();
-        foreach (Transform child in boughtPanel.transform)
-        {
-            GameObject.Destroy(child.gameObject);
-        }
-        canIBuy = true;
-        WhatsMyInventory();
-
+	    moneyText.text = money.ToString("000");
+	    NormalAmountText.text = normalAmount.ToString("000");
+	    EpicAmountText.text = epicAmount.ToString("000");
+	    LegendaryAmountText.text = legendaryAmount.ToString("000");
     }
 
 
     public void ToLibrary()
     {
+        if (boughtPanelLibrary.Count <= 0)
+        {
+            StartCoroutine(NothingToCollect());
+        }
+        else
+        {
         audioClip.PlayOneShot(button_10);
-        _anim.SetBool("onCollect", true);
+        //_anim.SetBool("onCollect", true);
         StartCoroutine(Collect());
-        _anim.SetBool("onCollect", false);
+        //_anim.SetBool("onCollect", false);
+        }
     }
 
 
@@ -97,9 +115,7 @@ public class GameManager : MonoBehaviour
         epicAmount = epicCardLibrary.Count;
         legendaryAmount = legendaryCardLibrary.Count;
 
-        NormalAmountText.text = normalAmount.ToString("000");
-        EpicAmountText.text = epicAmount.ToString("000");
-        LegendaryAmountText.text = legendaryAmount.ToString("000");
+        UpdatePlayerPrefs();
     }
 
 
@@ -110,8 +126,8 @@ public class GameManager : MonoBehaviour
 
         if (!canIBuy)
         {
+            StartCoroutine(CollectYourCards());
             audioClip.PlayOneShot(button_18);
-            Debug.Log("Please collect the previous bought cards.");
         }
 
         if (money >= 10 && canIBuy)
@@ -145,8 +161,8 @@ public class GameManager : MonoBehaviour
 
         if (money < 10) // You can't buy more cards.
         {
+            StartCoroutine(NotEnoughMoney());
             audioClip.PlayOneShot(button_18);
-            Debug.Log("insignificant funds");
         }
     }
 
@@ -154,8 +170,8 @@ public class GameManager : MonoBehaviour
     {
         if (!canIBuy)
         {
+            StartCoroutine(CollectYourCards());
             audioClip.PlayOneShot(button_18);
-            Debug.Log("Please collect the previous bought cards.");
         }
 
         if (money >= 25 && canIBuy)
@@ -189,8 +205,8 @@ public class GameManager : MonoBehaviour
 
         if (money < 25) // You can't buy more cards.
         {
+            StartCoroutine(NotEnoughMoney());
             audioClip.PlayOneShot(button_18);
-            Debug.Log("insignificant funds");
         }
     }
 
@@ -198,8 +214,8 @@ public class GameManager : MonoBehaviour
     {
         if (!canIBuy)
         {
+            StartCoroutine(CollectYourCards());
             audioClip.PlayOneShot(button_18);
-            Debug.Log("Please collect the previous bought cards.");
         }
 
         if (money >= 50 && canIBuy)
@@ -233,8 +249,8 @@ public class GameManager : MonoBehaviour
 
         if (money < 50) // You can't buy more cards.
         {
+            StartCoroutine(NotEnoughMoney());
             audioClip.PlayOneShot(button_18);
-            Debug.Log("insignificant funds");
         }
     }
 
@@ -243,6 +259,7 @@ public class GameManager : MonoBehaviour
     {
         if (normalCardLibrary.Count <= 0)
         {
+            StartCoroutine(NoMoreCards());
             audioClip.PlayOneShot(button_18);
             Debug.Log("You have no more cards to sell");
         }
@@ -260,6 +277,7 @@ public class GameManager : MonoBehaviour
     {
         if (epicCardLibrary.Count <= 0)
         {
+            StartCoroutine(NoMoreCards());
             audioClip.PlayOneShot(button_18);
             Debug.Log("You have no more cards to sell");
         }
@@ -277,6 +295,7 @@ public class GameManager : MonoBehaviour
     {
         if (legendaryCardLibrary.Count <= 0)
         {
+            StartCoroutine(NoMoreCards());
             audioClip.PlayOneShot(button_18);
             Debug.Log("You have no more cards to sell");
         }
@@ -318,6 +337,62 @@ public class GameManager : MonoBehaviour
     }
 
 
+    IEnumerator Collect()
+    {
+        yield return new WaitForSeconds(0.5f);
+        boughtPanelLibrary.Clear();
+        foreach (Transform child in boughtPanel.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+        canIBuy = true;
+        WhatsMyInventory();
+    }
+    
+    IEnumerator NoMoreCards()
+    {
+        fadePanel.GetComponentInChildren<Text>().text = "Not enough cards to sell.";
+        fadePanel.gameObject.SetActive(true);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", true);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", false);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.gameObject.SetActive(false);
+    }
+    IEnumerator NothingToCollect()
+    {
+        fadePanel.GetComponentInChildren<Text>().text = "There is nothing to collect.";
+        fadePanel.gameObject.SetActive(true);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", true);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", false);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.gameObject.SetActive(false);
+    }
+
+    IEnumerator NotEnoughMoney()
+    {
+        fadePanel.GetComponentInChildren<Text>().text = "Not enough money.";
+        fadePanel.gameObject.SetActive(true);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", true);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", false);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.gameObject.SetActive(false);
+    }
+
+    IEnumerator CollectYourCards()
+    {
+        fadePanel.GetComponentInChildren<Text>().text = "Collect your cards to buy again.";
+        fadePanel.gameObject.SetActive(true);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", true);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.GetComponent<Animator>().SetBool("fadeOut", false);
+        yield return new WaitForSeconds(1.5f);
+        fadePanel.gameObject.SetActive(false);
+    }
+
+
     void LoadingResources()
     {
         normalCard = Resources.Load<Card>("Cards/Normal");
@@ -332,5 +407,14 @@ public class GameManager : MonoBehaviour
         button_18 = Resources.Load<AudioClip>("Audio/UI_Buttons/Button_18");
         button_10 = Resources.Load<AudioClip>("Audio/UI_Buttons/Button_10");
         button_11 = Resources.Load<AudioClip>("Audio/UI_Buttons/Button_11");
+    }
+
+
+    void UpdatePlayerPrefs()
+    {
+        PlayerPrefs.SetInt("Money", money);
+        PlayerPrefs.SetInt("Normal_Amount", normalAmount);
+        PlayerPrefs.SetInt("Epic_Amount", epicAmount);
+        PlayerPrefs.SetInt("Legendary_Amount", legendaryAmount);
     }
 }
